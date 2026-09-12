@@ -96,6 +96,66 @@ html,body,#map{height:100%;margin:0}
   padding:3px 5px;
   font-size:12px;
 }
+
+/* --- Mobile/desktop panel controls added September 2026 --- */
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+.panel-head-title{font-weight:700;font-size:14px;line-height:1.2}
+.panel-actions{display:flex;gap:4px;flex:0 0 auto}
+.panel-actions button,.panel-restore{
+  border:1px solid #aaa;background:#f7f7f7;color:#222;border-radius:5px;
+  min-width:28px;height:28px;padding:2px 7px;cursor:pointer;font:600 14px/1 system-ui,sans-serif;
+  box-shadow:0 1px 3px rgba(0,0,0,.15)
+}
+.panel-actions button:hover,.panel-restore:hover{background:#eee}
+.panel-actions button:focus-visible,.panel-restore:focus-visible{outline:2px solid #2878c8;outline-offset:1px}
+.fixed-layer-panel{
+  resize:both;
+  min-width:225px;
+  min-height:72px;
+  max-width:min(92vw,620px);
+  max-height:86vh;
+}
+.fixed-layer-panel.panel-collapsed{
+  width:auto !important;height:auto !important;min-width:0;min-height:0;
+  max-height:none;overflow:hidden;resize:none;padding:8px 9px
+}
+.fixed-layer-panel.panel-collapsed .fixed-buttons,
+.fixed-layer-panel.panel-collapsed #fixedLayerList{display:none}
+.fixed-layer-panel.panel-collapsed .panel-head{margin:0}
+.fixed-title{margin-bottom:0}
+.panel-restore{
+  position:absolute;z-index:10001;background:rgba(255,255,255,.97);display:none;
+}
+#restoreLayers{right:8px;bottom:8px}
+#restoreAbout{right:8px;top:8px}
+.leaflet-control.info{
+  position:relative;
+  resize:both;
+  overflow:auto;
+  min-width:230px;
+  min-height:76px;
+  max-width:min(92vw,650px);
+  max-height:72vh;
+  width:420px;
+  box-sizing:border-box;
+}
+.leaflet-control.info .about-body{display:block}
+.leaflet-control.info.panel-collapsed{
+  width:auto !important;height:auto !important;min-width:0;min-height:0;
+  max-width:none;max-height:none;overflow:hidden;resize:none;padding:8px 9px
+}
+.leaflet-control.info.panel-collapsed .about-body{display:none}
+.leaflet-control.info.panel-collapsed .panel-head{margin:0}
+@media(max-width:800px){
+  .leaflet-control.info{width:min(72vw,360px);max-height:48vh;font-size:12px}
+  .fixed-layer-panel{width:min(72vw,320px);max-height:48vh}
+  .panel-actions button{min-width:31px;height:31px}
+}
+@media(max-width:480px){
+  .leaflet-control.info{width:min(78vw,330px);max-height:42vh}
+  .fixed-layer-panel{width:min(78vw,300px);max-height:42vh}
+}
+
 </style>
 </head>
 <body>
@@ -117,7 +177,14 @@ html,body,#map{height:100%;margin:0}
 </div>
 
 <div id="fixedLayerPanel" class="fixed-layer-panel">
-  <div class="fixed-title">Map layers</div>
+  <div class="panel-head">
+    <div class="fixed-title panel-head-title">Map layers</div>
+    <div class="panel-actions">
+      <button type="button" id="collapseLayers" title="Minimise layers" aria-label="Minimise layers">−</button>
+      <button type="button" id="resetLayersSize" title="Reset panel size" aria-label="Reset layers panel size">□</button>
+      <button type="button" id="hideLayers" title="Hide layers" aria-label="Hide layers">×</button>
+    </div>
+  </div>
   <div class="fixed-buttons">
     <button type="button" id="showAllLayers">Show all</button>
     <button type="button" id="hideAllLayers">Hide all</button>
@@ -125,6 +192,8 @@ html,body,#map{height:100%;margin:0}
   </div>
   <div id="fixedLayerList"></div>
 </div>
+<button type="button" id="restoreLayers" class="panel-restore">Layers</button>
+<button type="button" id="restoreAbout" class="panel-restore">About</button>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const heavy={"T1 North Shore & Western": [[{"name": "Berowra", "lat": -33.623, "lon": 151.152, "exact": true}, {"name": "Mount Kuring-gai", "lat": -33.655, "lon": 151.136, "exact": true}, {"name": "Mount Colah", "lat": -33.671, "lon": 151.113, "exact": true}, {"name": "Asquith", "lat": -33.688, "lon": 151.108, "exact": true}, {"name": "Hornsby", "lat": -33.703, "lon": 151.099, "exact": true}, {"name": "Waitara", "lat": -33.709, "lon": 151.103, "exact": true}, {"name": "Wahroonga", "lat": -33.718, "lon": 151.115, "exact": true}, {"name": "Warrawee", "lat": -33.725, "lon": 151.12, "exact": true}, {"name": "Turramurra", "lat": -33.733, "lon": 151.124, "exact": true}, {"name": "Pymble", "lat": -33.743, "lon": 151.142, "exact": true}, {"name": "Gordon", "lat": -33.756, "lon": 151.154, "exact": true}, {"name": "Killara", "lat": -33.767, "lon": 151.161, "exact": true}, {"name": "Lindfield", "lat": -33.7755, "lon": 151.166, "exact": true}, {"name": "Roseville", "lat": -33.784, "lon": 151.177, "exact": true}, {"name": "Chatswood", "lat": -33.797, "lon": 151.181, "exact": true}, {"name": "Artarmon", "lat": -33.808, "lon": 151.184, "exact": true}, {"name": "St Leonards", "lat": -33.823, "lon": 151.194, "exact": true}, {"name": "Wollstonecraft", "lat": -33.832, "lon": 151.195, "exact": true}, {"name": "Waverton", "lat": -33.839, "lon": 151.199, "exact": true}, {"name": "North Sydney", "lat": -33.8405, "lon": 151.207, "exact": true}, {"name": "Milsons Point", "lat": -33.8465, "lon": 151.211, "exact": true}, {"name": "Wynyard", "lat": -33.865, "lon": 151.205, "exact": true}, {"name": "Town Hall", "lat": -33.8732, "lon": 151.206, "exact": true}, {"name": "Central", "lat": -33.883, "lon": 151.2066, "exact": true}], [{"name": "Central", "lat": -33.883, "lon": 151.2066, "exact": true}, {"name": "Redfern", "lat": -33.893, "lon": 151.204, "exact": true}, {"name": "Strathfield", "lat": -33.871, "lon": 151.094, "exact": true}, {"name": "Burwood", "lat": -33.874, "lon": 151.104, "exact": true}, {"name": "Lidcombe", "lat": -33.865, "lon": 151.045, "exact": true}, {"name": "Auburn", "lat": -33.85, "lon": 151.033, "exact": true}, {"name": "Clyde", "lat": -33.835, "lon": 151.017, "exact": true}, {"name": "Granville", "lat": -33.833, "lon": 151.012, "exact": true}, {"name": "Harris Park", "lat": -33.822, "lon": 151.007, "exact": true}, {"name": "Parramatta", "lat": -33.817, "lon": 151.004, "exact": true}, {"name": "Westmead", "lat": -33.807, "lon": 150.988, "exact": true}, {"name": "Wentworthville", "lat": -33.803, "lon": 150.968, "exact": true}, {"name": "Pendle Hill", "lat": -33.801, "lon": 150.957, "exact": true}, {"name": "Toongabbie", "lat": -33.785, "lon": 150.948, "exact": true}, {"name": "Seven Hills", "lat": -33.777, "lon": 150.945, "exact": true}, {"name": "Blacktown", "lat": -33.769, "lon": 150.906, "exact": true}, {"name": "Doonside", "lat": -33.766, "lon": 150.868, "exact": true}, {"name": "Rooty Hill", "lat": -33.773, "lon": 150.844, "exact": true}, {"name": "Mount Druitt", "lat": -33.768, "lon": 150.819, "exact": true}, {"name": "St Marys", "lat": -33.762, "lon": 150.774, "exact": true}, {"name": "Werrington", "lat": -33.759, "lon": 150.754, "exact": true}, {"name": "Kingswood", "lat": -33.759, "lon": 150.72, "exact": true}, {"name": "Penrith", "lat": -33.75, "lon": 150.696, "exact": true}, {"name": "Emu Plains", "lat": -33.75, "lon": 150.67, "exact": true}], [{"name": "Blacktown", "lat": -33.769, "lon": 150.906, "exact": true}, {"name": "Marayong", "lat": -33.748, "lon": 150.9, "exact": true}, {"name": "Quakers Hill", "lat": -33.727, "lon": 150.886, "exact": true}, {"name": "Schofields", "lat": -33.7044, "lon": 150.8738, "exact": true}, {"name": "Riverstone", "lat": -33.683, "lon": 150.866, "exact": true}, {"name": "Vineyard", "lat": -33.649, "lon": 150.852, "exact": true}, {"name": "Mulgrave", "lat": -33.627, "lon": 150.836, "exact": true}, {"name": "Windsor", "lat": -33.609, "lon": 150.814, "exact": true}, {"name": "Clarendon", "lat": -33.6105, "lon": 150.785, "exact": true}, {"name": "East Richmond", "lat": -33.601, "lon": 150.756, "exact": true}, {"name": "Richmond", "lat": -33.6, "lon": 150.751, "exact": true}]], "T2 Leppington & Inner West": [[{"name": "Central", "lat": -33.883, "lon": 151.2066, "exact": true}, {"name": "Redfern", "lat": -33.893, "lon": 151.204, "exact": true}, {"name": "Macdonaldtown", "lat": -33.8997, "lon": 151.1811, "exact": true}, {"name": "Newtown", "lat": -33.897, "lon": 151.18, "exact": true}, {"name": "Stanmore", "lat": -33.8944, "lon": 151.1647, "exact": true}, {"name": "Petersham", "lat": -33.8942, "lon": 151.1542, "exact": true}, {"name": "Lewisham", "lat": -33.8965, "lon": 151.148, "exact": true}, {"name": "Summer Hill", "lat": -33.8915, "lon": 151.1385, "exact": true}, {"name": "Ashfield", "lat": -33.888, "lon": 151.125, "exact": true}, {"name": "Croydon", "lat": -33.8845, "lon": 151.115, "exact": true}, {"name": "Burwood", "lat": -33.874, "lon": 151.104, "exact": true}, {"name": "Strathfield", "lat": -33.871, "lon": 151.094, "exact": true}, {"name": "Homebush", "lat": -33.867, "lon": 151.085, "exact": true}, {"name": "Flemington", "lat": -33.864, "lon": 151.073, "exact": true}, {"name": "Lidcombe", "lat": -33.865, "lon": 151.045, "exact": true}, {"name": "Auburn", "lat": -33.85, "lon": 151.033, "exact": true}, {"name": "Clyde", "lat": -33.835, "lon": 151.017, "exact": true}, {"name": "Granville", "lat": -33.8332, "lon": 151.0125, "exact": true}, {"name": "__T2_granville_merrylands_curve_1", "lat": -33.8341, "lon": 151.0083, "exact": true}, {"name": "__T2_granville_merrylands_curve_2", "lat": -33.83545, "lon": 151.0042, "exact": true}, {"name": "__T2_granville_merrylands_curve_3", "lat": -33.83635, "lon": 150.9996, "exact": true}, {"name": "__T2_granville_merrylands_curve_4", "lat": -33.83655, "lon": 150.9956, "exact": true}, {"name": "Merrylands", "lat": -33.836, "lon": 150.992, "exact": true}, {"name": "Guildford", "lat": -33.8495, "lon": 150.983, "exact": true}, {"name": "Yennora", "lat": -33.8622, "lon": 150.968, "exact": true}, {"name": "Fairfield", "lat": -33.872, "lon": 150.957, "exact": true}, {"name": "Canley Vale", "lat": -33.8874, "lon": 150.9485, "exact": true}, {"name": "Cabramatta", "lat": -33.894, "lon": 150.936, "exact": true}, {"name": "Warwick Farm", "lat": -33.914, "lon": 150.938, "exact": true}, {"name": "Liverpool", "lat": -33.925, "lon": 150.925, "exact": true}, {"name": "Casula", "lat": -33.949, "lon": 150.909, "exact": true}, {"name": "Glenfield", "lat": -33.972, "lon": 150.892, "exact": true}, {"name": "Edmondson Park", "lat": -33.969, "lon": 150.858, "exact": true}, {"name": "Leppington", "lat": -33.9546, "lon": 150.808, "exact": true}], [{"name": "Granville", "lat": -33.833, "lon": 151.012, "exact": true}, {"name": "Harris Park", "lat": -33.822, "lon": 151.007, "exact": true}, {"name": "Parramatta", "lat": -33.817, "lon": 151.004, "exact": true}]], "T3 Liverpool & Inner West": [[{"name": "Central", "lat": -33.883, "lon": 151.2066, "exact": true}, {"name": "Redfern", "lat": -33.893, "lon": 151.204, "exact": true}, {"name": "Macdonaldtown", "lat": -33.8997, "lon": 151.1811, "exact": true}, {"name": "Newtown", "lat": -33.897, "lon": 151.18, "exact": true}, {"name": "Stanmore", "lat": -33.8944, "lon": 151.1647, "exact": true}, {"name": "Petersham", "lat": -33.8942, "lon": 151.1542, "exact": true}, {"name": "Lewisham", "lat": -33.8965, "lon": 151.148, "exact": true}, {"name": "Summer Hill", "lat": -33.8915, "lon": 151.1385, "exact": true}, {"name": "Ashfield", "lat": -33.888, "lon": 151.125, "exact": true}, {"name": "Croydon", "lat": -33.8845, "lon": 151.115, "exact": true}, {"name": "Burwood", "lat": -33.874, "lon": 151.104, "exact": true}, {"name": "Strathfield", "lat": -33.871, "lon": 151.094, "exact": true}, {"name": "Homebush", "lat": -33.867, "lon": 151.085, "exact": true}, {"name": "Flemington", "lat": -33.864, "lon": 151.073, "exact": true}, {"name": "Lidcombe", "lat": -33.865, "lon": 151.045, "exact": true}, {"name": "Berala", "lat": -33.871, "lon": 151.033, "exact": true}, {"name": "Regents Park", "lat": -33.88284, "lon": 151.02428, "exact": true}, {"name": "Sefton", "lat": -33.88526, "lon": 151.01148, "exact": true}, {"name": "Chester Hill", "lat": -33.88355, "lon": 150.99942, "exact": true}, {"name": "Leightonfield", "lat": -33.883, "lon": 150.983, "exact": true}, {"name": "Villawood", "lat": -33.884, "lon": 150.963, "exact": true}, {"name": "Carramar", "lat": -33.884, "lon": 150.956, "exact": true}, {"name": "Cabramatta", "lat": -33.894, "lon": 150.936, "exact": true}, {"name": "Warwick Farm", "lat": -33.914, "lon": 150.938, "exact": true}, {"name": "Liverpool", "lat": -33.925, "lon": 150.925, "exact": true}]], "T4 Eastern Suburbs & Illawarra": [[{"name": "Bondi Junction", "lat": -33.891, "lon": 151.247, "exact": true}, {"name": "Edgecliff", "lat": -33.879, "lon": 151.236, "exact": true}, {"name": "Kings Cross", "lat": -33.8745, "lon": 151.222, "exact": true}, {"name": "Martin Place", "lat": -33.8686, "lon": 151.2113, "exact": true}, {"name": "Town Hall", "lat": -33.8732, "lon": 151.206, "exact": true}, {"name": "Central", "lat": -33.883, "lon": 151.2066, "exact": true}, {"name": "Redfern", "lat": -33.893, "lon": 151.204, "exact": true}, {"name": "Sydenham", "lat": -33.9144, "lon": 151.1663, "exact": true}, {"name": "Tempe", "lat": -33.924, "lon": 151.156, "exact": true}, {"name": "Wolli Creek", "lat": -33.928, "lon": 151.153, "exact": true}, {"name": "Arncliffe", "lat": -33.936, "lon": 151.146, "exact": true}, {"name": "Banksia", "lat": -33.945, "lon": 151.141, "exact": true}, {"name": "Rockdale", "lat": -33.952, "lon": 151.139, "exact": true}, {"name": "Kogarah", "lat": -33.964, "lon": 151.133, "exact": true}, {"name": "Carlton", "lat": -33.968, "lon": 151.124, "exact": true}, {"name": "Allawah", "lat": -33.97, "lon": 151.114, "exact": true}, {"name": "Hurstville", "lat": -33.967, "lon": 151.102, "exact": true}, {"name": "Penshurst", "lat": -33.964, "lon": 151.085, "exact": true}, {"name": "Mortdale", "lat": -33.968, "lon": 151.072, "exact": true}, {"name": "Oatley", "lat": -33.98, "lon": 151.075, "exact": true}, {"name": "Como", "lat": -33.999, "lon": 151.063, "exact": true}, {"name": "Jannali", "lat": -34.013, "lon": 151.065, "exact": true}, {"name": "Sutherland", "lat": -34.031, "lon": 151.058, "exact": true}, {"name": "Loftus", "lat": -34.044, "lon": 151.054, "exact": true}, {"name": "Engadine", "lat": -34.065, "lon": 151.013, "exact": true}, {"name": "Heathcote", "lat": -34.085, "lon": 151.009, "exact": true}, {"name": "Waterfall", "lat": -34.135, "lon": 150.994, "exact": true}], [{"name": "Sutherland", "lat": -34.031, "lon": 151.058, "exact": true}, {"name": "Kirrawee", "lat": -34.036, "lon": 151.071, "exact": true}, {"name": "Gymea", "lat": -34.036, "lon": 151.086, "exact": true}, {"name": "Miranda", "lat": -34.035, "lon": 151.103, "exact": true}, {"name": "Caringbah", "lat": -34.045, "lon": 151.124, "exact": true}, {"name": "Woolooware", "lat": -34.049, "lon": 151.143, "exact": true}, {"name": "Cronulla", "lat": -34.056, "lon": 151.151, "exact": true}]], "T5 Cumberland": [[{"name": "Richmond", "lat": -33.6, "lon": 150.751, "exact": true}, {"name": "East Richmond", "lat": -33.601, "lon": 150.756, "exact": true}, {"name": "Clarendon", "lat": -33.6105, "lon": 150.785, "exact": true}, {"name": "Windsor", "lat": -33.609, "lon": 150.814, "exact": true}, {"name": "Mulgrave", "lat": -33.627, "lon": 150.836, "exact": true}, {"name": "Vineyard", "lat": -33.649, "lon": 150.852, "exact": true}, {"name": "Riverstone", "lat": -33.683, "lon": 150.866, "exact": true}, {"name": "Schofields", "lat": -33.7044, "lon": 150.8738, "exact": true}, {"name": "Quakers Hill", "lat": -33.727, "lon": 150.886, "exact": true}, {"name": "Marayong", "lat": -33.748, "lon": 150.9, "exact": true}, {"name": "Blacktown", "lat": -33.769, "lon": 150.906, "exact": true}, {"name": "Seven Hills", "lat": -33.777, "lon": 150.945, "exact": true}, {"name": "Toongabbie", "lat": -33.785, "lon": 150.948, "exact": true}, {"name": "Pendle Hill", "lat": -33.801, "lon": 150.957, "exact": true}, {"name": "Wentworthville", "lat": -33.803, "lon": 150.968, "exact": true}, {"name": "Westmead", "lat": -33.807, "lon": 150.988, "exact": true}, {"name": "Parramatta", "lat": -33.817, "lon": 151.004, "exact": true}, {"name": "Harris Park", "lat": -33.822, "lon": 151.007, "exact": true}, {"name": "Merrylands", "lat": -33.836, "lon": 150.992, "exact": true}, {"name": "Guildford", "lat": -33.8495, "lon": 150.983, "exact": true}, {"name": "Yennora", "lat": -33.8622, "lon": 150.968, "exact": true}, {"name": "Fairfield", "lat": -33.872, "lon": 150.957, "exact": true}, {"name": "Canley Vale", "lat": -33.8874, "lon": 150.9485, "exact": true}, {"name": "Cabramatta", "lat": -33.894, "lon": 150.936, "exact": true}, {"name": "Warwick Farm", "lat": -33.914, "lon": 150.938, "exact": true}, {"name": "Liverpool", "lat": -33.925, "lon": 150.925, "exact": true}, {"name": "Casula", "lat": -33.949, "lon": 150.909, "exact": true}, {"name": "Glenfield", "lat": -33.972, "lon": 150.892, "exact": true}, {"name": "Edmondson Park", "lat": -33.969, "lon": 150.858, "exact": true}, {"name": "Leppington", "lat": -33.9546, "lon": 150.808, "exact": true}]], "T6 Lidcombe & Bankstown": [[{"name": "Lidcombe", "lat": -33.865, "lon": 151.045, "exact": true}, {"name": "Berala", "lat": -33.871, "lon": 151.033, "exact": true}, {"name": "Regents Park", "lat": -33.88284, "lon": 151.02428, "exact": true}, {"name": "Birrong", "lat": -33.893, "lon": 151.024, "exact": true}, {"name": "Yagoona", "lat": -33.907, "lon": 151.025, "exact": true}, {"name": "Bankstown", "lat": -33.917, "lon": 151.034, "exact": true}]], "T7 Olympic Park": [[{"name": "Lidcombe", "lat": -33.865, "lon": 151.045, "exact": true}, {"name": "Sydney Olympic Park", "lat": -33.848, "lon": 151.068, "exact": true}]], "T8 Airport & South": [[{"name": "Central", "lat": -33.883, "lon": 151.2066, "exact": true}, {"name": "Green Square", "lat": -33.905, "lon": 151.202, "exact": true}, {"name": "Mascot", "lat": -33.924, "lon": 151.188, "exact": true}, {"name": "Domestic Airport", "lat": -33.93365278, "lon": 151.1807083, "exact": true, "source": "published station coordinate"}, {"name": "International Airport", "lat": -33.93405833, "lon": 151.1657833, "exact": true, "source": "published station coordinate"}, {"name": "Wolli Creek", "lat": -33.928, "lon": 151.153, "exact": true}, {"name": "Turrella", "lat": -33.93, "lon": 151.139, "exact": true}, {"name": "Bardwell Park", "lat": -33.935, "lon": 151.125, "exact": true}, {"name": "Bexley North", "lat": -33.938, "lon": 151.113, "exact": true}, {"name": "Kingsgrove", "lat": -33.939, "lon": 151.102, "exact": true}, {"name": "Beverly Hills", "lat": -33.947, "lon": 151.082, "exact": true}, {"name": "Narwee", "lat": -33.948, "lon": 151.07, "exact": true}, {"name": "Riverwood", "lat": -33.951, "lon": 151.052, "exact": true}, {"name": "Padstow", "lat": -33.953, "lon": 151.037, "exact": true}, {"name": "Revesby", "lat": -33.95, "lon": 151.015, "exact": true}, {"name": "Panania", "lat": -33.956, "lon": 150.998, "exact": true}, {"name": "East Hills", "lat": -33.962, "lon": 150.985, "exact": true}, {"name": "Holsworthy", "lat": -33.956, "lon": 150.951, "exact": true}, {"name": "Glenfield", "lat": -33.972, "lon": 150.892, "exact": true}, {"name": "Macquarie Fields", "lat": -33.985, "lon": 150.892, "exact": true}, {"name": "Ingleburn", "lat": -34.001, "lon": 150.865, "exact": true}, {"name": "Minto", "lat": -34.026, "lon": 150.843, "exact": true}, {"name": "Leumeah", "lat": -34.05, "lon": 150.833, "exact": true}, {"name": "Campbelltown", "lat": -34.064, "lon": 150.814, "exact": true}, {"name": "Macarthur", "lat": -34.072, "lon": 150.797, "exact": true}]], "T9 Northern": [[{"name": "Hornsby", "lat": -33.703, "lon": 151.099, "exact": true}, {"name": "Normanhurst", "lat": -33.7235, "lon": 151.098, "exact": true}, {"name": "Thornleigh", "lat": -33.7318, "lon": 151.0789, "exact": true}, {"name": "Pennant Hills", "lat": -33.7373, "lon": 151.073, "exact": true}, {"name": "Beecroft", "lat": -33.7497, "lon": 151.0652, "exact": true}, {"name": "Cheltenham", "lat": -33.7554, "lon": 151.0782, "exact": true}, {"name": "Epping", "lat": -33.772, "lon": 151.082, "exact": true}, {"name": "Eastwood", "lat": -33.792, "lon": 151.079, "exact": true}, {"name": "Denistone", "lat": -33.799, "lon": 151.09, "exact": true}, {"name": "West Ryde", "lat": -33.805, "lon": 151.09, "exact": true}, {"name": "Meadowbank", "lat": -33.816, "lon": 151.089, "exact": true}, {"name": "Rhodes", "lat": -33.83, "lon": 151.087, "exact": true}, {"name": "Concord West", "lat": -33.848, "lon": 151.086, "exact": true}, {"name": "North Strathfield", "lat": -33.8586, "lon": 151.0885, "exact": true}, {"name": "Strathfield", "lat": -33.871, "lon": 151.094, "exact": true}, {"name": "Burwood", "lat": -33.874, "lon": 151.104, "exact": true}, {"name": "Redfern", "lat": -33.893, "lon": 151.204, "exact": true}, {"name": "Central", "lat": -33.883, "lon": 151.2066, "exact": true}, {"name": "Town Hall", "lat": -33.8732, "lon": 151.206, "exact": true}, {"name": "Wynyard", "lat": -33.865, "lon": 151.205, "exact": true}, {"name": "Milsons Point", "lat": -33.8465, "lon": 151.211, "exact": true}, {"name": "North Sydney", "lat": -33.8405, "lon": 151.207, "exact": true}, {"name": "Waverton", "lat": -33.839, "lon": 151.199, "exact": true}, {"name": "Wollstonecraft", "lat": -33.832, "lon": 151.195, "exact": true}, {"name": "St Leonards", "lat": -33.823, "lon": 151.194, "exact": true}, {"name": "Artarmon", "lat": -33.808, "lon": 151.184, "exact": true}, {"name": "Chatswood", "lat": -33.797, "lon": 151.181, "exact": true}, {"name": "Roseville", "lat": -33.784, "lon": 151.177, "exact": true}, {"name": "Lindfield", "lat": -33.7755, "lon": 151.166, "exact": true}, {"name": "Killara", "lat": -33.767, "lon": 151.161, "exact": true}, {"name": "Gordon", "lat": -33.756, "lon": 151.154, "exact": true}]], "SHL Southern Highlands — current passenger rail": [[{"name": "Campbelltown", "lat": -34.064, "lon": 150.814, "exact": true}, {"name": "Macarthur", "lat": -34.072, "lon": 150.797, "exact": true}, {"name": "Menangle Park", "lat": -34.104, "lon": 150.745, "exact": true}, {"name": "Menangle", "lat": -34.126, "lon": 150.739, "exact": true}, {"name": "Douglas Park", "lat": -34.184, "lon": 150.714, "exact": true}, {"name": "Picton", "lat": -34.1695, "lon": 150.611, "exact": true}]]};
@@ -638,7 +707,15 @@ loadOfficialRailGeometry();
 const info=L.control({position:'topright'});
 info.onAdd=()=>{
  const d=L.DomUtil.create('div','info');
- d.innerHTML=`<b>About this map</b><br>
+ d.innerHTML=`<div class="panel-head">
+      <div class="panel-head-title">About this map</div>
+      <div class="panel-actions">
+        <button type="button" id="collapseAbout" title="Minimise about" aria-label="Minimise about">−</button>
+        <button type="button" id="resetAboutSize" title="Reset panel size" aria-label="Reset about panel size">□</button>
+        <button type="button" id="hideAbout" title="Hide about" aria-label="Hide about">×</button>
+      </div>
+    </div>
+    <div class="about-body">
     A long-term concept for a more polycentric Greater Sydney transport network, combining:
     <ul style="margin:5px 0 5px 18px;padding:0">
       <li>current and committed Sydney Trains, Metro and light rail</li>
@@ -652,10 +729,62 @@ info.onAdd=()=>{
       <b>Legend:</b> solid lines are generally current infrastructure; dashed lines are future/concept infrastructure. Freight is shown separately. Future station locations are conceptual and would require engineering, patronage and environmental studies.
       <br><br>
       This is an independent transport-planning concept, not an official Transport for NSW proposal.
+    </div>
     </div>`
  return d;
 };
 info.addTo(map);
+
+// Panel minimise/hide/resize controls. On desktop the panels can also be resized
+// from their lower-right corner. The square button restores the original size.
+(function setupPanelControls(){
+  const layers=document.getElementById('fixedLayerPanel');
+  const restoreLayers=document.getElementById('restoreLayers');
+  const restoreAbout=document.getElementById('restoreAbout');
+  const about=document.querySelector('.leaflet-control.info');
+
+  function stopMapGestures(el){
+    if(!el) return;
+    if(window.L && L.DomEvent){
+      L.DomEvent.disableClickPropagation(el);
+      L.DomEvent.disableScrollPropagation(el);
+    }
+  }
+  [layers,about,restoreLayers,restoreAbout].forEach(stopMapGestures);
+
+  function setCollapsed(panel,button){
+    const collapsed=panel.classList.toggle('panel-collapsed');
+    if(button){
+      button.textContent=collapsed ? '+' : '−';
+      button.title=collapsed ? 'Expand panel' : 'Minimise panel';
+      button.setAttribute('aria-label',button.title);
+    }
+  }
+  function resetLayers(){
+    layers.classList.remove('panel-collapsed');
+    layers.style.width='320px';
+    layers.style.height='';
+    layers.style.maxHeight='62vh';
+    const b=document.getElementById('collapseLayers'); if(b){b.textContent='−';b.title='Minimise layers';}
+  }
+  function resetAbout(){
+    about.classList.remove('panel-collapsed');
+    about.style.width='420px';
+    about.style.height='';
+    about.style.maxHeight='72vh';
+    const b=document.getElementById('collapseAbout'); if(b){b.textContent='−';b.title='Minimise about';}
+  }
+
+  document.getElementById('collapseLayers')?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();setCollapsed(layers,e.currentTarget);});
+  document.getElementById('resetLayersSize')?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();resetLayers();});
+  document.getElementById('hideLayers')?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();layers.style.display='none';restoreLayers.style.display='block';});
+  restoreLayers?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();layers.style.display='block';restoreLayers.style.display='none';resetLayers();});
+
+  document.getElementById('collapseAbout')?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();setCollapsed(about,e.currentTarget);});
+  document.getElementById('resetAboutSize')?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();resetAbout();});
+  document.getElementById('hideAbout')?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();about.style.display='none';restoreAbout.style.display='block';});
+  restoreAbout?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();about.style.display='block';restoreAbout.style.display='none';resetAbout();});
+})();
 
 
 // Permanent checkbox panel. This replaces Leaflet's collapsible layer control
